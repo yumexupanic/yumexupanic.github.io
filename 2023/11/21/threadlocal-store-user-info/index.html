@@ -76,6 +76,8 @@
     &#125;
 &#125;
 </code></pre>
+<span id="more"></span>
+
 <h2 id="获取授权信息并设置"><a href="#获取授权信息并设置" class="headerlink" title="获取授权信息并设置"></a>获取授权信息并设置</h2><p>拦截器中处理</p>
 <pre><code class="java">var token = request.getHeader(&quot;Authorization&quot;);
 var user = getUser(token);
@@ -89,7 +91,7 @@ UserContext.set(user);
             
                 <div class="share">
                     <!--开启分享-->
-<div class="share-component" data-disabled="google,twitter,facebook" data-description=""></div>
+<div class="share-component" data-disabled="google,twitter,facebook" data-description="由于目前的 web 应用，几乎都是线程多路复用，同一时..."></div>
 
 
 <script src="/js/share.min.js"></script>
