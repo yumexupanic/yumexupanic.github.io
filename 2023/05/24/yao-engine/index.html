@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans" prefix="og: http://ogp.me/ns#" class="han-init">
+<head>
+  <meta charset="utf-8">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+  <link rel="icon" href="/favicon.ico">
+  
+  <title>Yume | 开源低代码引擎 Yao 体验</title>
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+<link rel="stylesheet" href="/lib/fancybox/jquery.fancybox-1.3.4.css">
+
+  <!--在这里倒入jquery 方便处理部分页面的jquery-->
+  <script src="https://cdn.staticfile.org/jquery/1.7/jquery.min.js" type="text/javascript" ></script>
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+	<header class="site-header navfixed-false">
+  <div class="container">
+      <h1><a href="/" title="Yume"><span class="octicon octicon-mark-github"></span> Yume</a></h1>
+      <nav class="site-header-nav" role="navigation">
+        
+              
+              <a href="/"  class=" site-header-nav-item hvr-underline-from-center" title="Home">Home</a>
+        
+              
+              <a href="/open-source/"  class=" site-header-nav-item hvr-underline-from-center" title="Open-Source">Open-Source</a>
+        
+      </nav>
+  </div>
+</header>
+
+	
+<section class="collection-head geopattern" data-pattern-id="开源低代码引擎 Yao 体验" >
+    <div class="container">
+        <div class="collection-title">
+            <h1 class="collection-header">
+                开源低代码引擎 Yao 体验
+            </h1>
+            
+                <div class="collection-info">
+                    <span class="meta-info">
+                        <span class="octicon octicon-calendar"></span>
+                        <time datetime="2023-05-24T13:52:45.000Z" itemprop="datePublished">2023-05-24</time>
+                    </span>
+                    
+                </div>
+            
+        </div>
+    </div>
+</section>
+	<section class="container">
+    <div class="columns">
+        <div class="column  three-fourths " >
+            <article class="article-content markdown-body">
+                <p>从生成式 ai 出来之后，低代码的热潮又被带动了一波。低代码可以实现少写代码，或者不写代码的方式来搭建一个稳定可用的系统。对于企业而言减少开发成本。</p>
+<p>但是对于我自己来说，不怕难，但怕烦。公司内部业务系统较多，如果都要自己实现 也未免太麻烦了一点，人生苦短。应该把时间放在更有意义的事情上。</p>
+<p>最近公司内部需要一个业务平台，来记录和统计一些数据，刚好借着这个机会，去了解一下。</p>
+<span id="more"></span>
+
+<p>我的需求比较明确：</p>
+<ul>
+<li>只考虑开源项目</li>
+<li>部署简单</li>
+<li>完善的鉴权体系</li>
+</ul>
+<p>最终我找到了一个用 golang 实现的开源低代码引擎 yao，为什么说这是一个引擎，而不是一个低代码框架或者平台？因为这个并不是像 illacloud 那样的 sass 平台。它的实现方式比较特别，总的来说是利用 json 做的 DSL，从界面到数据处理 都是通过 json 来配置的，除了自定义脚本，脚本是通过 javascript 实现的。</p>
+<p><img src="https://imgur-cloud.oss-cn-chengdu.aliyuncs.com/blog/202305241606956.png"></p>
+<h2 id="踩坑记录"><a href="#踩坑记录" class="headerlink" title="踩坑记录"></a>踩坑记录</h2><p>确定了开源项目之后，花了一天的时间看了 yao 引擎官方的几个 demo 后，我就开始上手了。不过越写到后面，越发现 DSL 学习成本有点高。主要官方的文档没有及时更新，文档和 demo 里面的代码有些地方差距较大。这里浪费了一些时间，最终我是 fork 了一份代码到本地。看着 golang 里面的 DSL 定义来配置 json。</p>
+<h3 id="登陆信息获取"><a href="#登陆信息获取" class="headerlink" title="登陆信息获取"></a>登陆信息获取</h3><p>yao 引擎的登陆系统存在两个逻辑，一个是平台自己的账号，一个是业务自己的账号。平台的账号可以叫做 admin，业务的账号叫做 user，这是两个不同的路由。这里会有一个问题，系统账号和业务账号登录进去后，页面是一样的，并不能控制权限，只能控制数据（当然这个过程也比较麻烦，后面会写出）。</p>
+<p>所以我这里是管理员登陆逻辑和业务登陆逻辑保持一致。把 logins 文件夹下面的 两个文件内容保持一致即可</p>
+<ul>
+<li>logins&#x2F;user.login.json</li>
+<li>logins&#x2F;admin.login.json</li>
+</ul>
+<p>上面说到的是一些小问题，无伤大雅。最关键的问题是登陆信息获取这个地方有 bug，用户登陆完毕之后，一个完整的业务系统是需要获取到用户信息的。这个引擎虽然实现了 session 相关的操作 process，但是并不怎么好用。设置了之后取出是空的。</p>
+<pre><code class="jsx">let sid = Process(&quot;session.Start&quot;);
+let jwt = Process(
+  &quot;xiang.helper.JwtMake&quot;,
+  user.id,
+  &#123;
+    id: user.id,
+    role: user.role,
+    staff_name: user.staff_name,
+    dept_id: user.dept_id,
+  &#125;,
+  &#123; timeout: 30 * 24 * 60 * 60, sid: sid &#125;
+);
+delete user.password;
+
+//关键代码
+Process(&quot;session.Set&quot;, &quot;user&quot;, user, 30 * 24 * 60 * 60);
+</code></pre>
+<p>这里是处理用户登陆的核心代码，在校验完毕账号和密码之后，需要创建 token（jwt）有效期设置为30天，然后给到 session 当中。</p>
+<p>这段代码比较简单，在登陆之后把用户数据存储到 session 中应该就可以了。但是我在后面到步骤中，一直无法获取到数据，为空。</p>
+<pre><code class="jsx">let user = Process(&quot;session.Get&quot;, &quot;user&quot;);
+// user: null
+</code></pre>
+<p>这里浪费了大量的时间之后，我换了一种实现方式。看见 yao 引擎有一个 store 存储的 process，相当于存储数据到内存中。 那么我把用户登陆的数据和 session id 存储到内存中不就可以了，相当于一个 map。</p>
+<pre><code class="jsx">let sid = Process(&quot;session.Start&quot;);
+new Store(&quot;cache&quot;).Set(sid, user);
+</code></pre>
+<pre><code class="jsx">//获取
+let user = new Store(&quot;cache&quot;).Get(Process(&quot;session.ID&quot;), &quot;user&quot;);
+//&#123;id: xxx,name:xxx&#125;
+</code></pre>
+<aside>
+💡 这里也有一个坑，后面会说到
+</aside>
+
+<h3 id="数据权限控制"><a href="#数据权限控制" class="headerlink" title="数据权限控制"></a>数据权限控制</h3><p>一个业务系统，根据用户的权限来显示不同的数据是一个很常见的需求，这里介绍下方法。</p>
+<p>这是默认表格使用的 process</p>
+<pre><code class="java">Process(&quot;models.user.Paginate&quot;, param, 1, 1000)
+</code></pre>
+<p>如果我们要自定义数据查询方式，这里有三种方式。</p>
+<p><strong>使用 DSL 语法增加查询条件</strong></p>
+<pre><code class="java">&quot;search&quot;: &#123;
+  &quot;default&quot;: [
+    &#123;
+      &quot;orders&quot;: [&#123; &quot;column&quot;: &quot;event_date&quot;, &quot;option&quot;: &quot;desc&quot; &#125;],
+      &quot;user_id[]&quot;: []
+    &#125;
+  ]
+&#125;
+</code></pre>
+<p>这种方式一般来说，是首选的方式。但是我并不推荐这样用，首先是但是官网文档晦涩难懂，并没有给出更多的例子 以上只是做了一个默认的排序操作我找文档都找了很久，最终还是在 demo 中看到这种写法 。另外这种方式并不能设置查询条件默认值，可能是通过 querystring 来控制。但是 querystring 我们无法控制，是系统内部的路由处理的。</p>
+<p><strong>使用 <code>after:search</code></strong> </p>
+<pre><code class="jsx">// 先配置 DSL &quot;after:search&quot;: &quot;scripts.user.AfterSearch&quot;
+
+function AfterSearch(data) &#123;
+    //获取用户权限 
+    let user = new Store(&quot;cache&quot;).Get(Process(&quot;session.ID&quot;), &quot;user&quot;);
+    if(user.role == &#39;normal&#39;) &#123;
+        //修改 data
+    &#125;
+  return data;
+&#125;
+</code></pre>
+<p>使用 hook 函数修改返回的数据，但是这种方式会导致分页信息异常。不推荐</p>
+<p><strong>重写查询接口</strong></p>
+<pre><code class="jsx">&quot;search&quot;: &#123;
+  &quot;guard&quot;: &quot;bearer-jwt,scripts.user.Guard&quot;,
+  &quot;process&quot;: &quot;scripts.wakatime.Search&quot;,
+  &quot;default&quot;: [
+    &#123;
+      &quot;orders&quot;: [&#123; &quot;column&quot;: &quot;event_date&quot;, &quot;option&quot;: &quot;desc&quot; &#125;],
+      &quot;user_id[]&quot;: []
+    &#125;
+  ]
+&#125;
+</code></pre>
+<p>能看到这一部分的 DSL 多了一些内容，其中最关键的是 <code>process</code> ，这里定义了我们处理查询的 process 相关实现如下: </p>
+<pre><code class="jsx">function Search(param, page, pageSize) &#123;
+  let user = new Store(&quot;cache&quot;).Get(Process(&quot;session.ID&quot;), &quot;user&quot;);
+  if (param.wheres) &#123;
+    if (user.role == &quot;管理员&quot;) &#123;
+      var query = new Query();
+      let users = query.Get(&#123;
+        select: [&quot;id&quot;],
+        wheres: [
+          &#123; &quot;:deleted_at&quot;: &quot;删除&quot;, &quot;=&quot;: null &#125;,
+          &#123; field: &quot;dept_id&quot;, op: &quot;=&quot;, value: user.dept_id &#125;,
+        ],
+        from: &quot;e_user&quot;,
+      &#125;);
+      let userid = users.map((e) =&gt; e.id);
+      param.wheres.push(&#123;
+        column: &quot;user_id&quot;,
+        op: &quot;in&quot;,
+        value: userid,
+      &#125;);
+    &#125; else &#123;
+      param.wheres.push(&#123; column: &quot;user_id&quot;, value: user.id &#125;);
+    &#125;
+  &#125;
+
+  var data = Process(
+    &quot;models.wakatime.Paginate&quot;,
+    &#123;
+      ...param,
+    &#125;,
+    page,
+    pageSize
+  );
+  return data;
+&#125;
+</code></pre>
+<p>要让这段脚本正常的执行，还需要一个关键的参数，也就是在 DSL 中的这段代码:</p>
+<pre><code class="jsx">  &quot;guard&quot;: &quot;bearer-jwt,scripts.user.Guard&quot;,
+</code></pre>
+<p>由于登录信息无法获取，我这里使用的是会话缓存的方式实现。这里的意思是增加了一个中间件，<code>bearer-jwt</code> 是系统默认的，第二个是<code>scripts.user.Guard</code> 这是自定义的授权，相关实现如下:</p>
+<pre><code class="jsx">function Guard(path, params, query, payload, headers) &#123;
+  let token = headers.Authorization[0];
+  let data = Process(&quot;xiang.helper.JwtValidate&quot;, token.replace(&quot;Bearer &quot;, &quot;&quot;));
+  let sid = Process(&quot;session.ID&quot;);
+  new Store(&quot;cache&quot;).Set(sid, data.data);
+&#125;
+</code></pre>
+<p>那么每一次获取列表之前，都会先到我这个中间件来，这里会处理 http 请求中携带的授权信息，根据授权信息取出用户信息存储在会话缓存中。</p>
+<p>那么为什么这一步不能写在 <code>scripts.wakatime.Search</code> 中？我也想这么干，但是在查询 process 中无法获取到 token header。所以只能写一个中间件在查询之前先把用户信息获取到，然后在查询脚本中 根据会话 ID 获取用户信息。</p>
+<aside>
+💡 也就是说，如果有任何需要控制数据权限的地方，中间件是必须增加的，否则无法获取到用户信息。
+</aside>
+
+<h2 id="源码编译"><a href="#源码编译" class="headerlink" title="源码编译"></a>源码编译</h2><p>这个引擎并不能满足我的需求，小问题有点多， 系统并不能正常使用的，起初我加了他们的群，问了下开发人员，并不能很好解决问题，比如</p>
+<ol>
+<li>Select 默认缓存了，只有在开发环境中才不会缓存</li>
+<li>Select 无法搜索</li>
+<li>只能导出数据库中的记录，不能进行数据处理</li>
+<li>统计图 饼图显示的数值不是总计，而是最后一条数据的值</li>
+<li>无法去掉登录验证码</li>
+<li>弹窗保存事件有时候会触发很多次</li>
+</ol>
+<p>前面两个 Select 的问题 0.10.3 pre 已经解决了，后面我更新了下源码，准备自己修改后面几个问题 ，源码是基于 0.10.3 pre 版本。</p>
+<p>yao 引擎主要的核心库有以下几个 </p>
+<ul>
+<li>yao</li>
+<li>v8go</li>
+<li>xun</li>
+<li>kun</li>
+<li>xgen</li>
+<li>gou</li>
+</ul>
+<p>我这次需要修改的主要是 yao 和 xgen 前面是 yao 核心库，xgen 基于 react 实现的前端页面。 </p>
+<h3 id="自定义导出"><a href="#自定义导出" class="headerlink" title="自定义导出"></a>自定义导出</h3><p>看了下官方的导出实现，只能导出 table 数据。我想先从数据库中统计一些数据，然后再导出，并且会增加一些颜色标记等。</p>
+<blockquote>
+<p>导出流程是先触发脚本，生成 excel 文件并放入指定的目录，然后通过 http 请求去下载文件。</p>
+</blockquote>
+<p><strong>新建文件</strong> </p>
+<p>helper&#x2F;excel.go</p>
+<pre><code class="go">package helper
+
+import (
+    &quot;encoding/json&quot;
+    &quot;fmt&quot;
+    &quot;github.com/google/uuid&quot;
+    &quot;github.com/xuri/excelize/v2&quot;
+    &quot;github.com/yaoapp/gou&quot;
+    &quot;github.com/yaoapp/yao/config&quot;
+    &quot;path/filepath&quot;
+)
+
+type Payload struct &#123;
+    Columns []struct &#123;
+        Name string `json:&quot;name&quot;`
+    &#125; `json:&quot;columns&quot;`
+    Data    [][]string `json:&quot;data&quot;`
+    Options struct &#123;
+        TitleRow   int    `json:&quot;titleRow&quot;`
+        ColWidth   int    `json:&quot;colWidth&quot;`
+        OtherStyle string `json:&quot;otherStyle&quot;&quot;`
+        HeadStyle  string `json:&quot;headStyle&quot;&quot;`
+        BodyStyle  string `json:&quot;bodyStyle&quot;&quot;`
+    &#125; `json:&quot;options&quot;`
+&#125;
+
+func ProcessExcel(process *gou.Process) interface&#123;&#125; &#123;
+    process.ValidateArgNums(0)
+
+    body := Payload&#123;&#125;
+    json.Unmarshal([]byte(process.ArgsString(0)), &amp;body)
+
+    fmt.Println(body.Options.BodyStyle)
+    // 创建一个新的工作簿
+    f := excelize.NewFile()
+
+    // 创建一个工作表
+    sheetName := &quot;Sheet1&quot;
+
+    var titleStyle = -1
+    var bodyStyle = -1
+    var otherStyle = -1
+
+    if len(body.Options.HeadStyle) &gt; 0 &#123;
+        titleStyle, _ = f.NewStyle(body.Options.HeadStyle)
+    &#125;
+    if len(body.Options.BodyStyle) &gt; 0 &#123;
+        bodyStyle, _ = f.NewStyle(body.Options.BodyStyle)
+    &#125;
+    if len(body.Options.OtherStyle) &gt; 0 &#123;
+        otherStyle, _ = f.NewStyle(body.Options.OtherStyle)
+    &#125;
+
+    var titleRow []string
+
+    for _, column := range body.Columns &#123;
+        titleRow = append(titleRow, column.Name)
+    &#125;
+
+    for i, v := range titleRow &#123;
+        cellName, _ := excelize.CoordinatesToCellName(i+1, body.Options.TitleRow)
+        f.SetCellValue(sheetName, cellName, v)
+        if titleStyle &gt; -1 &#123;
+            f.SetCellStyle(sheetName, cellName, cellName, titleStyle)
+        &#125;
+    &#125;
+
+    if body.Options.TitleRow &gt; 1 &amp;&amp; otherStyle &gt; -1 &#123;
+        for i := 0; i &lt; body.Options.TitleRow; i++ &#123;
+            for col, _ := range titleRow &#123;
+                cellName, _ := excelize.CoordinatesToCellName(col+1, i)
+                f.SetCellStyle(sheetName, cellName, cellName, otherStyle)
+            &#125;
+        &#125;
+    &#125;
+
+    numRow := body.Options.TitleRow + 1
+    for i, dataRow := range body.Data &#123;
+        rowNum := i + numRow // 数据行
+        for index, v := range dataRow &#123;
+            cellName, _ := excelize.CoordinatesToCellName(index+1, rowNum)
+            f.SetCellValue(sheetName, cellName, v)
+            if bodyStyle &gt; -1 &#123;
+                f.SetCellStyle(sheetName, cellName, cellName, bodyStyle)
+            &#125;
+        &#125;
+    &#125;
+
+    if body.Options.ColWidth &gt; 0 &#123;
+        for i := 1; i &lt;= len(body.Data); i++ &#123;
+            colName, _ := excelize.ColumnNumberToName(i)
+            err := f.SetColWidth(&quot;Sheet1&quot;, colName, colName, float64(body.Options.ColWidth))
+            if err != nil &#123;
+                fmt.Println(err)
+            &#125;
+        &#125;
+    &#125;
+
+    uuid, _ := uuid.NewRandom()
+    filename := fmt.Sprintf(&quot;%s.xlsx&quot;, uuid.String())
+    path := filepath.Join(filepath.Join(config.Conf.Root, &quot;data&quot;), filename)
+    fmt.Println(path)
+
+    // 保存工作簿
+    if err := f.SaveAs(path); err != nil &#123;
+        fmt.Println(err)
+    &#125;
+
+    return filename
+&#125;
+</code></pre>
+<p><strong>注册到处理器</strong></p>
+<p>helper&#x2F;process.go</p>
+<pre><code class="go">//Excel 处理器
+gou.RegisterProcessHandler(&quot;utils.biz.excel&quot;, ProcessExcel)
+</code></pre>
+<p><strong>使用</strong></p>
+<pre><code class="go">//payload 就是我需要导出的业务数据 
+Process(&quot;utils.biz.excel&quot;, JSON.stringify(payload))
+</code></pre>
+<p><strong>效果</strong></p>
+<p><img src="https://imgur-cloud.oss-cn-chengdu.aliyuncs.com/blog/202305241608869.png"></p>
+<h3 id="增加中文转拼音"><a href="#增加中文转拼音" class="headerlink" title="增加中文转拼音"></a>增加中文转拼音</h3><p>业务需要支持拼音搜索数据，js 汉字转音频需要安装一些库，v8go 是不支持的，所以可以新增一个处理器来做这件事情。</p>
+<p><strong>新增文件</strong></p>
+<p>helper&#x2F;pinyin.go</p>
+<pre><code class="go">package helper
+
+import (
+    &quot;github.com/mozillazg/go-pinyin&quot;
+    &quot;github.com/yaoapp/gou&quot;
+)
+
+func ProcessPinYin(process *gou.Process) interface&#123;&#125; &#123;
+    process.ValidateArgNums(1)
+    hans := process.ArgsString(0)
+    args := pinyin.NewArgs()
+    return pinyin.LazyPinyin(hans, args)
+&#125;
+</code></pre>
+<p><strong>注册处理器</strong></p>
+<pre><code class="go">//自定义增加的处理器
+gou.RegisterProcessHandler(&quot;utils.biz.pinyin&quot;, ProcessPinYin)
+</code></pre>
+<p><strong>使用</strong></p>
+<pre><code class="jsx">function save(payload)&#123;
+    let py = Process(&quot;utils.biz.pinyin&quot;, payload.project_name);
+  payload.pinyin_key = py.join(&quot;&quot;);
+  let result = Process(&quot;models.project.save&quot;, payload);
+&#125;
+</code></pre>
+<h3 id="解决统计图-NumbearChart-值错误"><a href="#解决统计图-NumbearChart-值错误" class="headerlink" title="解决统计图 NumbearChart 值错误"></a>解决统计图 NumbearChart 值错误</h3><p>这里的值应该是累加的合，而不是最后一个数据的值</p>
+<p>修改文件： xgen&#x2F;components&#x2F;chart&#x2F;NumberChart&#x2F;index.tsx</p>
+<pre><code class="jsx">const total = props.data
+.map((e) =&gt; e[props.valueKey || &#39;value&#39;])
+.reduce((accumulator, currentValue) =&gt; accumulator + currentValue, 0)
+
+&lt;BaseNumber &#123;...props&#125; number=&#123;total&#125;&gt;&lt;/BaseNumber&gt;
+</code></pre>
+<p><strong>效果</strong></p>
+<p><img src="https://imgur-cloud.oss-cn-chengdu.aliyuncs.com/blog/202305241608770.png"></p>
+<p>左边的时间之前是最后一条数据的值。</p>
+<h3 id="新窗口打开后-token-消失"><a href="#新窗口打开后-token-消失" class="headerlink" title="新窗口打开后 token 消失"></a>新窗口打开后 token 消失</h3><p>在同一个浏览器上，登录成功之后 复制地址重新打开 tab 会发现 token 失效。具体的原因我没有去查，为了快速解决问题，我这里使用了 localStorage 来存储 token，修改了 token 相关逻辑。这个问题算是暂时解决了。</p>
+<h3 id="Select-远程搜索太慢"><a href="#Select-远程搜索太慢" class="headerlink" title="Select 远程搜索太慢"></a>Select 远程搜索太慢</h3><p>这里官方用了一个抖动函数，但是对于我来说 这里有点太慢了，打完字之后要等个一段时间才出结果。</p>
+<p>修改源码: xgen&#x2F;components&#x2F;edit&#x2F;Select&#x2F;model.ts</p>
+<pre><code class="jsx">//line 30 这里之前是等待了 800 ms
+target[&#39;onSearch&#39;] = debounce(this.remote.searchOptions, 100, &#123; leading: true &#125;)
+</code></pre>
+<h3 id="去掉业务助手和登录验证码"><a href="#去掉业务助手和登录验证码" class="headerlink" title="去掉业务助手和登录验证码"></a>去掉业务助手和登录验证码</h3><p>在 0.10.3 pre 版本中，自带了业务助手，当时还没有正式发布，但是业务并不需要这个东西，暂时无法关闭，我只有把这个入口给删除了。</p>
+<p>修改文件: xgen&#x2F;packages&#x2F;xgen&#x2F;layouts&#x2F;index.tsx</p>
+<pre><code class="jsx">这里把 Neo 业务助手注释即可
+&#123;/* &lt;Neo &#123;...props_neo&#125;&gt;&lt;/Neo&gt; */&#125;
+</code></pre>
+<p>登录验证码的移除需要修改两个地方，一处是验证器，一处是表单，但是改动有4个文件 。 </p>
+<p>修改文件: </p>
+<p>xgen&#x2F;packages&#x2F;xgen&#x2F;pages&#x2F;login&#x2F;model.ts</p>
+<pre><code class="jsx">// line 48
+async afterLogin(res: ResLogin, err: Utils.ResError) &#123;
+        if (err || !res?.token) &#123;
+            this.loading.login = false
+            // this.getCaptcha()
+
+            return
+        &#125;
+    ...
+&#125;
+
+//line 93
+onFinish(data: FormValues) &#123;
+        const &#123; mobile, password, code &#125; = data
+        const is_email = mobile.indexOf(&#39;@&#39;) !== -1
+
+        if (is_email) &#123;
+            if (!reg_email.test(mobile)) &#123;
+                return message.warning(this.global.locale_messages.login.form.validate.email)
+            &#125;
+        &#125; else &#123;
+            if (!reg_mobile.test(mobile)) &#123;
+                return message.warning(this.global.locale_messages.login.form.validate.mobile)
+            &#125;
+        &#125;
+
+        // captcha: &#123;
+        // 	id: this.captcha.id,
+        // 	code
+        // &#125;,
+        this.login(&#123;
+            [is_email ? &#39;email&#39; : &#39;mobile&#39;]: mobile,
+            password: password,
+
+            sid: local.temp_sid,
+            ...(this.is ? &#123; is: this.is &#125; : &#123;&#125;)
+        &#125;)
+    &#125;
+</code></pre>
+<p>修改文件: xgen&#x2F;packages&#x2F;xgen&#x2F;pages&#x2F;login&#x2F;types.ts</p>
+<pre><code class="jsx">// line 17
+export interface ReqLogin &#123;
+    email?: string
+    mobile?: string
+    is?: string
+    sid: string
+    password: string
+    // captcha: &#123;
+    // 	id: string
+    // 	code: string
+    // &#125;
+&#125;
+</code></pre>
+<p>修改文件: xgen&#x2F;packages&#x2F;xgen&#x2F;pages&#x2F;login&#x2F;admin&#x2F;index.tsx</p>
+<pre><code class="jsx">// line 9
+const Index = () =&gt; &#123;
+    const [x] = useState(() =&gt; container.resolve(Model))
+
+    useAsyncEffect(async () =&gt; &#123;
+        await window.$app.Event.emit(&#39;app/getAppInfo&#39;)
+
+        x.user_type = &#39;admin&#39;
+
+        // x.getCaptcha()
+    &#125;, [])
+
+    return &lt;Common type=&#39;admin&#39; x=&#123;x&#125;&gt;&lt;/Common&gt;
+&#125;
+</code></pre>
+<p>修改文件: xgen&#x2F;packages&#x2F;xgen&#x2F;pages&#x2F;login&#x2F;components&#x2F;Common&#x2F;components&#x2F;Form.tsx</p>
+<pre><code class="jsx">//line 91
+&lt;Item noStyle shouldUpdate&gt;
+    &#123;() =&gt; (
+    &lt;Button
+        className=&#123;clsx([
+            &#39;btn_login&#39;,
+            !(
+                (getFieldValue(&#39;mobile&#39;) &amp;&amp; getFieldValue(&#39;password&#39;))
+                //&amp;&amp; getFieldValue(&#39;code&#39;)
+            ) &amp;&amp; &#39;disabled&#39;
+        ])&#125;
+        type=&#39;primary&#39;
+        htmlType=&#39;submit&#39;
+        shape=&#39;round&#39;
+        loading=&#123;loading&#125;
+    &gt;
+        &#123;messages.login.title&#125;
+    &lt;/Button&gt;
+)&#125;
+&lt;/Item&gt;
+</code></pre>
+<p><strong>效果</strong></p>
+<p><img src="https://imgur-cloud.oss-cn-chengdu.aliyuncs.com/blog/202305241609134.png"></p>
+<h2 id="最后"><a href="#最后" class="headerlink" title="最后"></a>最后</h2><p>项目目前稳定跑了一段时间了，没有出现过什么问题，但是实现的过程并不是那么的顺利，要实现一个完整的业务系统，我相信上面的需求是最基本的。</p>
+<p>还有一些权限的修改，让页面可以支持权限显示和隐藏一些功能，在这之前只能控制的只有数据。以及增加快速录入数据的页面 等等 这其中代码中关联了公司业务，所以这里就不贴出来了。</p>
+<p>之前看过 illacloud ，但是这个东西并不那么简单，要实现一个完整业务系统可能比较困难，我最在意的 ui 特别丑，无法调试，比如一个菜单放上去 就那个样式了，无法调整字体大小，边框 菜单背景 等等。</p>
+<p>illacloud 这种可能更适合单个页面快速的展示一些数据，页面之间是无状态的，功能比较强大，还支持训练业务数据然后进行提问，类似 chatgpt。</p>
+<p>很感谢 yao 开源项目，让我了解低代码引擎的实现原理，以及实现过程中可能出现的问题。开源项目文档很重要，如果这种方式 DSL 学习成本低一点，文档完善一点，基础功能稳定一点，我是最愿意去使用的。</p>
+<p>比如这里的一些自带的处理器</p>
+<p><img src="https://imgur-cloud.oss-cn-chengdu.aliyuncs.com/blog202305242241921.png"></p>
+<p>这些处理器都是找不到的，因为处理器名称后面修改了，文档并没有同步</p>
+<pre><code class="go">gou.AliasProcess(&quot;xiang.main.Ping&quot;, &quot;utils.app.Ping&quot;)
+gou.AliasProcess(&quot;xiang.main.Inspect&quot;, &quot;utils.app.Inspect&quot;)
+
+// FMT
+gou.AliasProcess(&quot;xiang.helper.Print&quot;, &quot;utils.fmt.Print&quot;)
+
+// ENV
+gou.AliasProcess(&quot;xiang.helper.EnvSet&quot;, &quot;utils.env.Get&quot;)
+gou.AliasProcess(&quot;xiang.helper.EnvGet&quot;, &quot;utils.env.Get&quot;)
+gou.AliasProcess(&quot;xiang.helper.EnvMultiSet&quot;, &quot;utils.env.SetMany&quot;)
+gou.AliasProcess(&quot;xiang.helper.EnvMultiGet&quot;, &quot;utils.env.GetMany&quot;)
+
+// Flow
+gou.AliasProcess(&quot;xiang.helper.For&quot;, &quot;utils.flow.For&quot;)
+gou.AliasProcess(&quot;xiang.helper.Each&quot;, &quot;utils.flow.Each&quot;)
+gou.AliasProcess(&quot;xiang.helper.Case&quot;, &quot;utils.flow.Case&quot;)
+gou.AliasProcess(&quot;xiang.helper.IF&quot;, &quot;utils.flow.IF&quot;)
+gou.AliasProcess(&quot;xiang.helper.Throw&quot;, &quot;utils.flow.Throw&quot;)
+gou.AliasProcess(&quot;xiang.helper.Return&quot;, &quot;utils.flow.Return&quot;)
+
+// JWT
+gou.AliasProcess(&quot;xiang.helper.JwtMake&quot;, &quot;utils.jwt.Make&quot;)
+gou.AliasProcess(&quot;xiang.helper.JwtValidate&quot;, &quot;utils.jwt.Verify&quot;)
+</code></pre>
+<p>yao 的实现思路我觉得比较好，扩展性很强，但是基础服务并没有那么多好用。比如数据导出的自定义处理器无法获取到查询参数，现在导出只能全部导出。另外关于页面多次触发点击的问题，这个我目前没有时间去改了 暂时先这样用吧。</p>
+<p>接下来的后续就是，我是给自己找事情干来着，后期计划还是先自己实现，yao 引擎的数据库可以直接用，因为是底层是 xorm，所以还是比较简单扩展。<br>这次并没有节约我的时间，相反 花的时间更多了，从面向代码编程变成了面向 DSL 编程。收获并不是没有，但是不多。</p>
+<p>下一次低代码平台我会选择腾讯微搭。</p>
+
+            </article>
+            
+
+            
+            
+                <!-- 
+<div class="comments">
+    <div id="gitalk-container"></div>
+        
+<script src="/js/gitalk.js"></script>
+
+        <script>
+            var gitalk = new Gitalk({
+                clientID: "",
+                clientSecret: "",
+                repo: '',
+                owner: '',
+                admin: [''],
+                id: decodeURI('/2023/05/24/yao-engine/'),
+            })
+        gitalk.render('gitalk-container')
+        </script>
+</div>
+ -->
+            
+
+        </div>
+        <div class="column one-fourth">
+            
+                
+                
+
+
+<h3>Post Directory</h3>
+
+<div id="post-directory-module">
+	<section class="post-directory">
+		<p><strong class="toc-title">文章目录</strong></p>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B8%A9%E5%9D%91%E8%AE%B0%E5%BD%95"><span class="toc-text">踩坑记录</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%99%BB%E9%99%86%E4%BF%A1%E6%81%AF%E8%8E%B7%E5%8F%96"><span class="toc-text">登陆信息获取</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6"><span class="toc-text">数据权限控制</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BA%90%E7%A0%81%E7%BC%96%E8%AF%91"><span class="toc-text">源码编译</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E5%AF%BC%E5%87%BA"><span class="toc-text">自定义导出</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A2%9E%E5%8A%A0%E4%B8%AD%E6%96%87%E8%BD%AC%E6%8B%BC%E9%9F%B3"><span class="toc-text">增加中文转拼音</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A3%E5%86%B3%E7%BB%9F%E8%AE%A1%E5%9B%BE-NumbearChart-%E5%80%BC%E9%94%99%E8%AF%AF"><span class="toc-text">解决统计图 NumbearChart 值错误</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%B0%E7%AA%97%E5%8F%A3%E6%89%93%E5%BC%80%E5%90%8E-token-%E6%B6%88%E5%A4%B1"><span class="toc-text">新窗口打开后 token 消失</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Select-%E8%BF%9C%E7%A8%8B%E6%90%9C%E7%B4%A2%E5%A4%AA%E6%85%A2"><span class="toc-text">Select 远程搜索太慢</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%BB%E6%8E%89%E4%B8%9A%E5%8A%A1%E5%8A%A9%E6%89%8B%E5%92%8C%E7%99%BB%E5%BD%95%E9%AA%8C%E8%AF%81%E7%A0%81"><span class="toc-text">去掉业务助手和登录验证码</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9C%80%E5%90%8E"><span class="toc-text">最后</span></a></li></ol>
+	</section>
+</div>
+            
+        </div>
+    </div>
+</section>
+
+<footer class="container">
+    <div class="site-footer" role="contentinfo">
+        <div class="copyright left mobile-block">
+                © 2016
+                <span title="yumemor">yumemor</span>
+                <a href="javascript:window.scrollTo(0,0)" class="right mobile-visible">TOP</a>
+        </div>
+
+        <ul class="site-footer-links right mobile-hidden">
+            <li>
+                <a href="javascript:window.scrollTo(0,0)" >TOP</a>
+            </li>
+        </ul>
+
+        <a href="https://github.com/yumemor/hexo-theme-primer" target="_blank" aria-label="view source code">
+            <span class="mega-octicon octicon-mark-github" title="GitHub"></span>
+        </a>
+
+        <ul class="site-footer-links mobile-hidden">
+            
+                  
+                  <li>
+                    <a href="/"  title="Home">Home</a>
+                  </li>
+            
+                  
+                  <li>
+                    <a href="/open-source/"  title="Open-Source">Open-Source</a>
+                  </li>
+            
+            <li>
+                <a href="/atom.xml">
+                    <span class="octicon octicon-rss" style="color:orange;"></span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</footer>
+
+		
+<script src="/js/geopattern.js"></script>
+
+		
+<script src="/js/highlight.pack.js"></script>
+
+		
+<script src="/lib/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+		
+			
+<script src="/js/toc.js"></script>
+
+		
+
+		
+<script src="/js/index.js"></script>
+
+
+		 
+<script src="/js/popular_repo.js"></script>
+ 
+
+	</body>
+</html>
