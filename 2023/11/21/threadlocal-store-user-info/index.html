@@ -76,11 +76,12 @@
     &#125;
 &#125;
 </code></pre>
-<h2 id="获取授权信息并设置"><a href="#获取授权信息并设置" class="headerlink" title="获取授权信息并设置"></a>获取授权信息并设置</h2><pre><code class="java">var token = request.getHeader(&quot;Authorization&quot;);
+<h2 id="获取授权信息并设置"><a href="#获取授权信息并设置" class="headerlink" title="获取授权信息并设置"></a>获取授权信息并设置</h2><p>拦截器中处理</p>
+<pre><code class="java">var token = request.getHeader(&quot;Authorization&quot;);
 var user = getUser(token);
 UserContext.set(user);
 </code></pre>
-<h2 id="清理数据"><a href="#清理数据" class="headerlink" title="清理数据"></a>清理数据</h2><p>在 http 返回之前，移除用户数据</p>
+<h2 id="清理数据"><a href="#清理数据" class="headerlink" title="清理数据"></a>清理数据</h2><p>http 返回之前，移除用户数据</p>
 <pre><code class="java">UserContext.remove();
 </code></pre>
 
